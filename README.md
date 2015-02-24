@@ -1,7 +1,7 @@
 # octranspolib
 
 octranspolib is a Python module for accessing the OC Transpo API through a client interface. 
-Heavily influenced by [hozn/stravalib]("https://github.com/hozn/stravalib")
+Heavily influenced by [hozn/stravalib](https://github.com/hozn/stravalib)
 
 ## Autenticated client object
 
@@ -15,7 +15,7 @@ You can create a client object by passing you application ID and API key to the 
 
 ## Summary for stop
 
-You can get a the routes summary for a stop using the _get_route_summary_for_stop_ method.
+You can get a the routes summary for a stop using the __get_route_summary_for_stop__ method.
 
     from octranspolib import Client
 
