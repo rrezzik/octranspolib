@@ -2,16 +2,11 @@ import logging
 import urlparse
 import requests
 import functools
-import json
-import xml
-from octranspolib.parsertest import Xml2Json
-from StringIO import StringIO
 
 class Api(object):
     """
     This class is responsible for performing the HTTP requests, and error handling.
     """
-    #__metaclass__ = abc.ABCMeta
 
     oc_transpo_server = 'api.octranspo1.com'
     api_base = '/v1.2'
@@ -21,7 +16,9 @@ class Api(object):
         Initialize this protocol client, optionally providing a (shared) :class:`requests.Session`
         object.
 
-        :param access_token: The token that provides access to a specific Strava account.
+        :param app_id: The application id for access to a specific OC Transpo developer account.
+        :param api_key: The API key for access to a specific OC Transpo developer account.
+
         :param requests_session: An existing :class:`requests.Session` object to use.
         """
         self.log = logging.getLogger('{0.__module__}.{0.__name__}'.format(self.__class__))
@@ -29,15 +26,10 @@ class Api(object):
         self.api_key = api_key
 
         if requests_sess:
-            self.rsession = requests_session
+            self.rsession = requests_sess
         else:
             self.rsession = requests.Session()
 
-        logging.basicConfig() 
-        logging.getLogger().setLevel(logging.DEBUG)
-        requests_log = logging.getLogger("requests.packages.urllib3")
-        requests_log.setLevel(logging.DEBUG)
-        requests_log.propagate = True
 
     def _resolve_url(self, url):
         if not url.startswith('http'):
@@ -47,7 +39,6 @@ class Api(object):
     def _request(self, url, params=None, files=None, method='GET', check_for_errors=True):
 
         url = self._resolve_url(url)
-        print url
         self.log.info("{method} {url!r} with params {params!r}".format(method=method, url=url, params=params))
         if params is None:
             params = {}
@@ -70,20 +61,6 @@ class Api(object):
 
         raw = requester(url, data=params)
 
-        # create an XMLReader
-        #parser = xml.sax.make_parser()
-        # turn off namepsaces
-        #parser.setFeature(xml.sax.handler.feature_namespaces, 0)
-
-        # override the default ContextHandler
-        #Handler = StopHandler()
-        #parser.setContentHandler( Handler )
-        print raw.text
-        json = Xml2Json(raw.text).result
-        #string_obj = StringIO(raw.text)
-        #parser.parse(string_obj)
-
-        #print raw.text
         if check_for_errors:
             self._handle_protocol_error(raw)
 
@@ -91,19 +68,11 @@ class Api(object):
         if raw.status_code in [204]:
             resp = []
         else:
-            resp = json
-            #resp = raw.json()
-
-        # TODO: We should parse the response to get the rate limit details and
-        # update our rate limiter.
-        # see: http://strava.github.io/api/#access
-
-        # At this stage we should assume that request was successful and we should invoke
-        # our rate limiter.  (Note that this may need to be reviewed; some failures may
-        # also count toward the limit?)
-        #self.rate_limiter()
+            resp = raw.content
 
         return resp
+
+
     def _handle_protocol_error(self, response):
         """
         Parses the raw response from the server, raising a :class:`stravalib.exc.Fault` if the
