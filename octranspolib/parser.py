@@ -1,66 +1,37 @@
-#!/usr/bin/python
-
-import xml.sax
-
-# expat parser
-
-class StopHandler( xml.sax.ContentHandler ):
-   def __init__(self):
-      self.CurrentData = ""
-      self.StopNo = ""
-      self.StopDescription = ""
-      self.year = ""
-      self.rating = ""
-      self.stars = ""
-      self.description = ""
-
-   # Call when an element starts
-   def startElement(self, tag, attributes):
-      self.CurrentData = tag
-      if tag == "GetRouteSummaryForStopResult":
-         print "*****GetRouteSummaryForStopResult*****"
+import lxml.etree as ET
+from StringIO import StringIO
 
 
-   # Call when an elements ends
-   def endElement(self, tag):
-      if self.CurrentData == "StopNo":
-         print "StopNo:", self.StopNo
-      elif self.CurrentData == "StopDescription":
-         print "StopDescription:", self.StopDescription
-      #elif self.CurrentData == "year":
-      #   print "Year:", self.year
-      #elif self.CurrentData == "rating":
-      #   print "Rating:", self.rating
-      #elif self.CurrentData == "stars":
-      #   print "Stars:", self.stars
-      #elif self.CurrentData == "description":
-      #   print "Description:", self.description
-      #self.CurrentData = ""
+class StopSummary(object):
 
-   # Call when a character is read
-   def characters(self, content):
-      if self.CurrentData == "StopNo":
-         self.StopNo = content
-      elif self.CurrentData == "StopDescription":
-         self.StopDescription = content
-   #   elif self.CurrentData == "year":
-   #      self.year = content
-   #   elif self.CurrentData == "rating":
-   #      self.rating = content
-   #   elif self.CurrentData == "stars":
-   #      self.stars = content
-   #   elif self.CurrentData == "description":
-   #      self.description = content
-  
-if ( __name__ == "__main__"):
-   
-   # create an XMLReader
-   parser = xml.sax.make_parser()
-   # turn off namepsaces
-   parser.setFeature(xml.sax.handler.feature_namespaces, 0)
+    ROOT_NODE = "GetRouteSummaryForStopResult"
 
-   # override the default ContextHandler
-   Handler = MovieHandler()
-   parser.setContentHandler( Handler )
-   
-   parser.parse("movies.xml")
+    def __init__(self, data):
+        self.data = data
+
+    def route(self, node):
+        route = {}
+        route["number"] = node.xpath("//*[local-name() = 'RouteNo']")[0].text
+        route["direction_id"] = node.xpath("//*[local-name() = 'DirectionID']")[0].text
+        route["direction"] = node.xpath("//*[local-name() = 'Direction']")[0].text
+        route["heading"] = node.xpath("//*[local-name() = 'RouteHeading']")[0].text
+
+        return route
+
+    # Call starts parsing the StopSummary xml response
+    def parse(self):
+
+        parser = ET.XMLParser(ns_clean=True)
+        f = StringIO(self.data)
+        tree = ET.parse(f, parser)
+
+        stop_data = tree.xpath("//*[local-name() = 'GetRouteSummaryForStopResult']")[0]
+
+        summary = {}
+        summary["number"] = stop_data.xpath("//*[local-name() = 'StopNo']")[0].text
+        summary["description"] = stop_data.xpath("//*[local-name() = 'StopDescription']")[0].text
+        summary["routes"] = map(self.route, stop_data.xpath("//*[local-name() = 'Route']"))
+
+        return summary
+
+
